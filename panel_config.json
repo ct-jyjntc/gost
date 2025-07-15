@@ -4,15 +4,15 @@
       "32e4870f7be3",
       {
         "nodeId": "32e4870f7be3",
-        "nodeName": "测试节点",
-        "nodeType": "exit",
+        "nodeName": "zjdx",
+        "nodeType": "auto",
         "platform": "darwin",
         "arch": "arm64",
         "hostname": "Mac-mini.local",
-        "uptime": 417831,
+        "uptime": 422437,
         "memory": {
           "total": 17179869184,
-          "free": 75317248
+          "free": 220512256
         },
         "cpus": 10,
         "networkInterfaces": {
@@ -165,7 +165,7 @@
         },
         "version": "1.0.0",
         "runningProcesses": [],
-        "registeredAt": "2025-07-15T21:16:13.222Z"
+        "registeredAt": "2025-07-15T22:32:59.344Z"
       }
     ]
   ],

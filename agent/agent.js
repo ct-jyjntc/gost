@@ -301,6 +301,12 @@ class GostNodeAgent {
             console.log(`📨 收到消息: ${message.type}`);
             
             switch (message.type) {
+                case 'welcome':
+                    console.log(`🎉 ${message.data.message}`);
+                    if (message.data.syncedProcesses) {
+                        console.log(`📋 同步进程数量: ${message.data.syncedProcesses}`);
+                    }
+                    break;
                 case 'start_gost':
                     this.startGost(message.data);
                     break;
