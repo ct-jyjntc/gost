@@ -1,0 +1,30 @@
+{
+  "name": "gost-panel",
+  "version": "1.0.0",
+  "description": "GOST管理面板 - 支持入口和出口节点管理",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "axios": "^1.10.0",
+    "body-parser": "^1.20.2",
+    "child_process": "^1.0.2",
+    "express": "^4.18.2",
+    "fs": "^0.0.1-security",
+    "path": "^0.12.7",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "gost",
+    "proxy",
+    "panel",
+    "管理面板"
+  ],
+  "author": "",
+  "license": "MIT"
+}

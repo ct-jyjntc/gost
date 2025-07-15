@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GOST管理面板</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 GOST管理面板</h1>
+            <p>轻松管理你的代理节点</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('nodes')">节点管理</button>
+            <button class="tab-button" onclick="showTab('exit-tasks')">出口任务</button>
+            <button class="tab-button" onclick="showTab('entry-tasks')">入口任务</button>
+        </div>
+
+        <!-- 节点管理 -->
+        <div id="nodes" class="tab-content active">
+            <div class="section-header">
+                <h2>节点探针管理</h2>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="refreshNodes()">🔄 刷新</button>
+                    <button class="btn btn-primary" onclick="showNodeGuideModal()">📖 部署指南</button>
+                </div>
+            </div>
+            
+            <div class="info-box">
+                <p><strong>说明：</strong>节点探针需要部署在各个服务器上，用于远程管理GOST进程</p>
+                <p><strong>连接地址：</strong> <code>ws://你的面板IP:3000/agent</code></p>
+            </div>
+
+            <div id="nodes-list" class="nodes-list">
+                <!-- 节点列表将在这里动态生成 -->
+            </div>
+        </div>
+
+        <!-- 出口任务管理 -->
+        <div id="exit-tasks" class="tab-content">
+            <div class="section-header">
+                <h2>出口任务管理</h2>
+                <button class="btn btn-primary" onclick="showAddExitTaskModal()">+ 添加出口任务</button>
+            </div>
+            
+            <div class="info-box">
+                <p><strong>说明：</strong>出口任务运行命令 <code>gost -L relay+mws://:34343</code></p>
+            </div>
+
+            <div id="exit-tasks-list" class="nodes-list">
+                <!-- 出口任务列表将在这里动态生成 -->
+            </div>
+        </div>
+
+        <!-- 入口任务管理 -->
+        <div id="entry-tasks" class="tab-content">
+            <div class="section-header">
+                <h2>入口任务管理</h2>
+                <button class="btn btn-primary" onclick="showAddEntryTaskModal()">+ 添加入口任务</button>
+            </div>
+            
+            <div class="info-box">
+                <p><strong>说明：</strong>入口任务支持TCP/UDP端口转发，可选择连接到出口任务</p>
+            </div>
+
+            <div id="entry-tasks-list" class="nodes-list">
+                <!-- 入口任务列表将在这里动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 节点部署指南模态框 -->
+    <div id="node-guide-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>节点探针部署指南</h3>
+                <span class="close" onclick="closeModal('node-guide-modal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <h4>1. 下载节点探针</h4>
+                <p>将 <code>agent</code> 文件夹复制到目标服务器</p>
+                
+                <h4>2. 安装依赖</h4>
+                <pre><code>cd agent
+npm install</code></pre>
+                
+                <h4>3. 启动探针</h4>
+                <pre><code># 基本启动
+node agent.js --panel ws://你的面板IP:3000 --name "节点名称"
+
+# 指定节点类型
+node agent.js --panel ws://你的面板IP:3000 --name "香港节点" --type exit
+
+# 后台运行
+nohup node agent.js --panel ws://你的面板IP:3000 --name "节点名称" > agent.log 2>&1 &</code></pre>
+                
+                <h4>4. 参数说明</h4>
+                <ul>
+                    <li><code>--panel</code>: 管理面板WebSocket地址</li>
+                    <li><code>--name</code>: 节点显示名称</li>
+                    <li><code>--type</code>: 节点类型 (entry/exit/auto)</li>
+                    <li><code>--id</code>: 自定义节点ID（可选）</li>
+                </ul>
+                
+                <h4>5. 系统服务（可选）</h4>
+                <p>可以将探针配置为系统服务，实现开机自启动</p>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-primary" onclick="closeModal('node-guide-modal')">知道了</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加出口任务模态框 -->
+    <div id="add-exit-task-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>添加出口任务</h3>
+                <span class="close" onclick="closeModal('add-exit-task-modal')">&times;</span>
+            </div>
+            <form id="add-exit-task-form">
+                <div class="form-group">
+                    <label for="exit-task-node">选择节点 *</label>
+                    <select id="exit-task-node" required>
+                        <option value="">请选择节点</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="exit-task-name">任务名称 *</label>
+                    <input type="text" id="exit-task-name" required placeholder="例如: 香港出口服务">
+                </div>
+                <div class="form-group">
+                    <label for="exit-task-port">监听端口</label>
+                    <input type="number" id="exit-task-port" placeholder="34343" value="34343" min="1" max="65535">
+                </div>
+                <div class="form-group">
+                    <label for="exit-task-description">描述</label>
+                    <textarea id="exit-task-description" placeholder="任务描述信息（可选）"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('add-exit-task-modal')">取消</button>
+                    <button type="submit" class="btn btn-primary">添加任务</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 添加入口任务模态框 -->
+    <div id="add-entry-task-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>添加入口任务</h3>
+                <span class="close" onclick="closeModal('add-entry-task-modal')">&times;</span>
+            </div>
+            <form id="add-entry-task-form">
+                <div class="form-group">
+                    <label for="entry-task-node">选择节点 *</label>
+                    <select id="entry-task-node" required>
+                        <option value="">请选择节点</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="entry-task-name">任务名称 *</label>
+                    <input type="text" id="entry-task-name" required placeholder="例如: 本地转发8080">
+                </div>
+                <div class="form-group">
+                    <label for="entry-task-port">本地端口 *</label>
+                    <input type="number" id="entry-task-port" required placeholder="8080" min="1" max="65535">
+                </div>
+                <div class="form-group">
+                    <label for="entry-task-target-ip">目标IP *</label>
+                    <input type="text" id="entry-task-target-ip" required placeholder="192.168.1.100">
+                </div>
+                <div class="form-group">
+                    <label for="entry-task-target-port">目标端口 *</label>
+                    <input type="number" id="entry-task-target-port" required placeholder="80" min="1" max="65535">
+                </div>
+                <div class="form-group">
+                    <label for="entry-task-exit">出口任务</label>
+                    <select id="entry-task-exit">
+                        <option value="">直连（不使用出口）</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>协议类型</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="entry-protocol-tcp" value="tcp" checked>
+                            TCP
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="entry-protocol-udp" value="udp" checked>
+                            UDP
+                        </label>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('add-entry-task-modal')">取消</button>
+                    <button type="submit" class="btn btn-primary">添加任务</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

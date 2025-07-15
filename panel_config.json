@@ -1,0 +1,214 @@
+{
+  "nodeConfigs": [
+    [
+      "32e4870f7be3",
+      {
+        "nodeId": "32e4870f7be3",
+        "nodeName": "测试节点",
+        "nodeType": "exit",
+        "platform": "darwin",
+        "arch": "arm64",
+        "hostname": "Mac-mini.local",
+        "uptime": 417831,
+        "memory": {
+          "total": 17179869184,
+          "free": 75317248
+        },
+        "cpus": 10,
+        "networkInterfaces": {
+          "lo0": [],
+          "feth2807": [
+            {
+              "address": "10.10.10.153",
+              "family": "IPv4",
+              "mac": "32:e4:87:0f:7b:e3"
+            }
+          ],
+          "ap1": [
+            {
+              "address": "fe80::8c0f:38ff:fe11:623a",
+              "family": "IPv6",
+              "mac": "8e:0f:38:11:62:3a"
+            }
+          ],
+          "awdl0": [
+            {
+              "address": "fe80::c888:c7ff:feec:6ff5",
+              "family": "IPv6",
+              "mac": "ca:88:c7:ec:6f:f5"
+            }
+          ],
+          "utun0": [
+            {
+              "address": "fe80::9d69:5914:fa38:3a15",
+              "family": "IPv6",
+              "mac": "00:00:00:00:00:00"
+            }
+          ],
+          "utun1": [
+            {
+              "address": "fe80::cd58:ebf:29c3:ec1c",
+              "family": "IPv6",
+              "mac": "00:00:00:00:00:00"
+            }
+          ],
+          "utun2": [
+            {
+              "address": "fe80::347b:103a:4213:11a3",
+              "family": "IPv6",
+              "mac": "00:00:00:00:00:00"
+            }
+          ],
+          "utun3": [
+            {
+              "address": "fe80::ce81:b1c:bd2c:69e",
+              "family": "IPv6",
+              "mac": "00:00:00:00:00:00"
+            }
+          ],
+          "llw0": [
+            {
+              "address": "fe80::c888:c7ff:feec:6ff5",
+              "family": "IPv6",
+              "mac": "ca:88:c7:ec:6f:f5"
+            }
+          ],
+          "utun4": [
+            {
+              "address": "fe80::8fad:9aca:7606:ee82",
+              "family": "IPv6",
+              "mac": "00:00:00:00:00:00"
+            }
+          ],
+          "utun5": [
+            {
+              "address": "fe80::62ba:b863:f79e:cf1",
+              "family": "IPv6",
+              "mac": "00:00:00:00:00:00"
+            }
+          ],
+          "en10": [
+            {
+              "address": "fe80::8c0:d499:46b:fedc",
+              "family": "IPv6",
+              "mac": "96:5c:9a:39:09:e8"
+            },
+            {
+              "address": "240e:47c:2a00:34dc:1c4c:9e3b:ae3c:3525",
+              "family": "IPv6",
+              "mac": "96:5c:9a:39:09:e8"
+            },
+            {
+              "address": "240e:47c:2a00:34dc:4d64:425d:119e:4664",
+              "family": "IPv6",
+              "mac": "96:5c:9a:39:09:e8"
+            },
+            {
+              "address": "172.20.10.2",
+              "family": "IPv4",
+              "mac": "96:5c:9a:39:09:e8"
+            }
+          ],
+          "en9": [
+            {
+              "address": "fe80::69:e797:35cd:9ff4",
+              "family": "IPv6",
+              "mac": "96:5c:9a:39:09:17"
+            },
+            {
+              "address": "169.254.67.243",
+              "family": "IPv4",
+              "mac": "96:5c:9a:39:09:17"
+            }
+          ],
+          "en11": [
+            {
+              "address": "fe80::c8e3:72ff:fef1:a5fd",
+              "family": "IPv6",
+              "mac": "ca:e3:72:f1:a5:fd"
+            }
+          ],
+          "bridge100": [
+            {
+              "address": "192.168.2.1",
+              "family": "IPv4",
+              "mac": "d2:11:e5:17:91:64"
+            },
+            {
+              "address": "fe80::d011:e5ff:fe17:9164",
+              "family": "IPv6",
+              "mac": "d2:11:e5:17:91:64"
+            },
+            {
+              "address": "fd3f:c2da:11fd:125f:42d:de50:6622:447e",
+              "family": "IPv6",
+              "mac": "d2:11:e5:17:91:64"
+            }
+          ],
+          "utun6": [
+            {
+              "address": "198.18.0.1",
+              "family": "IPv4",
+              "mac": "00:00:00:00:00:00"
+            },
+            {
+              "address": "fe80::d211:e5ff:fe71:23a3",
+              "family": "IPv6",
+              "mac": "00:00:00:00:00:00"
+            },
+            {
+              "address": "fd00::1",
+              "family": "IPv6",
+              "mac": "00:00:00:00:00:00"
+            }
+          ]
+        },
+        "version": "1.0.0",
+        "runningProcesses": [],
+        "registeredAt": "2025-07-15T21:16:13.222Z"
+      }
+    ]
+  ],
+  "gostTasks": [
+    [
+      "1752614185035",
+      {
+        "taskId": "1752614185035",
+        "nodeId": "32e4870f7be3",
+        "name": "test",
+        "description": "",
+        "type": "exit",
+        "command": "gost -L relay+mws://:34343",
+        "port": 34343,
+        "status": "stopped",
+        "createdAt": "2025-07-15T21:16:25.035Z",
+        "pid": null,
+        "startedAt": "2025-07-15T21:17:14.896Z",
+        "stoppedAt": "2025-07-15T21:17:33.697Z"
+      }
+    ],
+    [
+      "1752614227379",
+      {
+        "taskId": "1752614227379",
+        "nodeId": "32e4870f7be3",
+        "name": "test-01",
+        "type": "entry",
+        "command": "gost -L tcp://:34344/31.22.111.51:33460 -L udp://:34344/31.22.111.51:33460 -F relay+mws://10.10.10.153:34343",
+        "localPort": 34344,
+        "targetIp": "31.22.111.51",
+        "targetPort": 33460,
+        "exitNodeId": "1752614185035",
+        "protocols": [
+          "tcp",
+          "udp"
+        ],
+        "status": "stopped",
+        "createdAt": "2025-07-15T21:17:07.379Z",
+        "pid": null,
+        "startedAt": "2025-07-15T21:17:12.199Z",
+        "stoppedAt": "2025-07-15T21:17:36.742Z"
+      }
+    ]
+  ]
+}

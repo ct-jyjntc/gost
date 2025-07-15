@@ -1,0 +1,14 @@
+{
+  "1752614227379": {
+    "command": "gost -L tcp://:34344/31.22.111.51:33460 -L udp://:34344/31.22.111.51:33460 -F relay+mws://10.10.10.153:34343",
+    "description": "test-01",
+    "startTime": 1752614232194,
+    "pid": 88755
+  },
+  "1752614185035": {
+    "command": "gost -L relay+mws://:34343",
+    "description": "test",
+    "startTime": 1752614234894,
+    "pid": 88760
+  }
+}

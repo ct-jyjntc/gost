@@ -1,0 +1,24 @@
+{
+  "name": "gost-node-agent",
+  "version": "1.0.0",
+  "description": "GOST节点探针 - 部署在各个服务器上管理GOST进程",
+  "main": "agent.js",
+  "scripts": {
+    "start": "node agent.js",
+    "dev": "nodemon agent.js",
+    "install-service": "node install-service.js"
+  },
+  "dependencies": {
+    "ws": "^8.14.2",
+    "axios": "^1.6.0",
+    "child_process": "^1.0.2",
+    "fs": "^0.0.1-security",
+    "os": "^0.1.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": ["gost", "agent", "proxy", "节点探针"],
+  "author": "",
+  "license": "MIT"
+}
