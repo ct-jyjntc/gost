@@ -4,15 +4,15 @@
       "32e4870f7be3",
       {
         "nodeId": "32e4870f7be3",
-        "nodeName": "zjdx",
+        "nodeName": "test-node",
         "nodeType": "auto",
         "platform": "darwin",
         "arch": "arm64",
         "hostname": "Mac-mini.local",
-        "uptime": 422437,
+        "uptime": 423777,
         "memory": {
           "total": 17179869184,
-          "free": 220512256
+          "free": 273825792
         },
         "cpus": 10,
         "networkInterfaces": {
@@ -165,7 +165,7 @@
         },
         "version": "1.0.0",
         "runningProcesses": [],
-        "registeredAt": "2025-07-15T22:32:59.344Z"
+        "registeredAt": "2025-07-15T22:55:19.746Z"
       }
     ]
   ],
@@ -208,6 +208,168 @@
         "pid": null,
         "startedAt": "2025-07-15T21:17:12.199Z",
         "stoppedAt": "2025-07-15T21:17:36.742Z"
+      }
+    ],
+    [
+      "1752619768017",
+      {
+        "taskId": "1752619768017",
+        "nodeId": "32e4870f7be3",
+        "name": "IPv6出口测试",
+        "description": "测试IPv6自定义IP和端口",
+        "type": "exit",
+        "command": "gost -L relay+mws://:8080",
+        "port": 8080,
+        "customIp": "2001:db8::1",
+        "customPort": 8080,
+        "status": "stopped",
+        "createdAt": "2025-07-15T22:49:28.017Z"
+      }
+    ],
+    [
+      "1752619793968",
+      {
+        "taskId": "1752619793968",
+        "nodeId": "32e4870f7be3",
+        "name": "测试入口",
+        "type": "entry",
+        "command": "gost -L tcp://:8888/8.8.8.8:53 -L udp://:8888/8.8.8.8:53 -F relay+mws://2001:db8::1:8080",
+        "localPort": 8888,
+        "targetIp": "8.8.8.8",
+        "targetPort": 53,
+        "exitNodeId": "1752619768017",
+        "protocols": [
+          "tcp",
+          "udp"
+        ],
+        "status": "stopped",
+        "createdAt": "2025-07-15T22:49:53.968Z"
+      }
+    ],
+    [
+      "1752619847021",
+      {
+        "taskId": "1752619847021",
+        "nodeId": "32e4870f7be3",
+        "name": "IPv6出口",
+        "description": "",
+        "type": "exit",
+        "command": "gost -L relay+mws://:8080",
+        "port": 8080,
+        "customIp": "2001:db8::1",
+        "customPort": 8080,
+        "status": "stopped",
+        "createdAt": "2025-07-15T22:50:47.021Z"
+      }
+    ],
+    [
+      "1752619869633",
+      {
+        "taskId": "1752619869633",
+        "nodeId": "32e4870f7be3",
+        "name": "测试入口",
+        "type": "entry",
+        "command": "gost -L tcp://:8888/8.8.8.8:53 -F relay+mws://[2001:db8::1]:8080",
+        "localPort": 8888,
+        "targetIp": "8.8.8.8",
+        "targetPort": 53,
+        "exitNodeId": "1752619847021",
+        "protocols": [
+          "tcp"
+        ],
+        "status": "stopped",
+        "createdAt": "2025-07-15T22:51:09.633Z"
+      }
+    ],
+    [
+      "1752619956577",
+      {
+        "taskId": "1752619956577",
+        "nodeId": "32e4870f7be3",
+        "name": "测试出口",
+        "description": "",
+        "type": "exit",
+        "command": "gost -L relay+mws://:8080",
+        "port": 8080,
+        "customIp": "2001:db8::1",
+        "customPort": 8080,
+        "status": "stopped",
+        "createdAt": "2025-07-15T22:52:36.577Z"
+      }
+    ],
+    [
+      "1752619988410",
+      {
+        "taskId": "1752619988410",
+        "nodeId": "32e4870f7be3",
+        "name": "TCP+UDP入口",
+        "type": "entry",
+        "command": "gost -L tcp://:8888/8.8.8.8:53 -L udp://:8888/8.8.8.8:53 -F relay+mws://[2001:db8::1]:8080",
+        "localPort": 8888,
+        "targetIp": "8.8.8.8",
+        "targetPort": 53,
+        "exitNodeId": "1752619956577",
+        "protocols": [
+          "tcp",
+          "udp"
+        ],
+        "status": "stopped",
+        "createdAt": "2025-07-15T22:53:08.410Z"
+      }
+    ],
+    [
+      "1752620134532",
+      {
+        "taskId": "1752620134532",
+        "nodeId": "32e4870f7be3",
+        "name": "IPv6出口",
+        "description": "",
+        "type": "exit",
+        "command": "gost -L relay+mws://:8080",
+        "port": 8080,
+        "customIp": "2001:db8::1",
+        "customPort": 8080,
+        "status": "stopped",
+        "createdAt": "2025-07-15T22:55:34.532Z"
+      }
+    ],
+    [
+      "1752620150741",
+      {
+        "taskId": "1752620150741",
+        "nodeId": "32e4870f7be3",
+        "name": "IPv6目标测试",
+        "type": "entry",
+        "command": "gost -L tcp://:8888/[2001:4860:4860::8888]:53 -L udp://:8888/[2001:4860:4860::8888]:53 -F relay+mws://[2001:db8::1]:8080",
+        "localPort": 8888,
+        "targetIp": "2001:4860:4860::8888",
+        "targetPort": 53,
+        "exitNodeId": "1752620134532",
+        "protocols": [
+          "tcp",
+          "udp"
+        ],
+        "status": "stopped",
+        "createdAt": "2025-07-15T22:55:50.741Z"
+      }
+    ],
+    [
+      "1752620180292",
+      {
+        "taskId": "1752620180292",
+        "nodeId": "32e4870f7be3",
+        "name": "IPv4目标测试",
+        "type": "entry",
+        "command": "gost -L tcp://:9999/8.8.8.8:53 -F relay+mws://[2001:db8::1]:8080",
+        "localPort": 9999,
+        "targetIp": "8.8.8.8",
+        "targetPort": 53,
+        "exitNodeId": "1752620134532",
+        "protocols": [
+          "tcp"
+        ],
+        "status": "stopped",
+        "createdAt": "2025-07-15T22:56:20.292Z"
       }
     ]
   ]

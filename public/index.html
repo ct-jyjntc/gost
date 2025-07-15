@@ -137,6 +137,16 @@ nohup node agent.js --panel ws://你的面板IP:3000 --name "节点名称" > age
                     <input type="number" id="exit-task-port" placeholder="34343" value="34343" min="1" max="65535">
                 </div>
                 <div class="form-group">
+                    <label for="exit-task-custom-ip">自定义IP地址</label>
+                    <input type="text" id="exit-task-custom-ip" placeholder="留空则自动获取，支持IPv4/IPv6">
+                    <small class="form-help">用于NAT环境或指定IPv6地址，例如: 1.2.3.4 或 2001:db8::1</small>
+                </div>
+                <div class="form-group">
+                    <label for="exit-task-custom-port">自定义端口</label>
+                    <input type="number" id="exit-task-custom-port" placeholder="留空则使用监听端口" min="1" max="65535">
+                    <small class="form-help">用于端口映射场景，入口节点将连接此端口</small>
+                </div>
+                <div class="form-group">
                     <label for="exit-task-description">描述</label>
                     <textarea id="exit-task-description" placeholder="任务描述信息（可选）"></textarea>
                 </div>

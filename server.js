@@ -268,20 +268,31 @@ app.get('/api/nodes', (req, res) => {
 
 // 添加GOST任务（出口节点）
 app.post('/api/tasks/exit', (req, res) => {
-    const { nodeId, name, description, port = 34343 } = req.body;
-    
+    const { nodeId, name, description, port = 34343, customIp, customPort } = req.body;
+
     if (!nodeId || !name) {
         return res.status(400).json({ error: '节点ID和名称不能为空' });
     }
-    
+
     const node = connectedNodes.get(nodeId);
     if (!node) {
         return res.status(404).json({ error: '节点不在线' });
     }
-    
+
+    // 验证自定义端口
+    const finalPort = customPort || port;
+    if (finalPort < 1 || finalPort > 65535) {
+        return res.status(400).json({ error: '端口号必须在1-65535之间' });
+    }
+
+    // 验证自定义IP地址
+    if (customIp && !isValidIpAddress(customIp)) {
+        return res.status(400).json({ error: '自定义IP地址格式不正确' });
+    }
+
     const taskId = Date.now().toString();
-    const command = `gost -L relay+mws://:${port}`;
-    
+    const command = `gost -L relay+mws://:${finalPort}`;
+
     const task = {
         taskId,
         nodeId,
@@ -289,14 +300,16 @@ app.post('/api/tasks/exit', (req, res) => {
         description: description || '',
         type: 'exit',
         command,
-        port,
+        port: finalPort,
+        customIp: customIp || null, // 保存用户自定义的IP地址
+        customPort: customPort || null, // 保存用户自定义的端口
         status: 'stopped',
         createdAt: new Date().toISOString()
     };
-    
+
     gostTasks.set(taskId, task);
     saveConfig();
-    
+
     res.json(task);
 });
 
@@ -321,20 +334,23 @@ app.post('/api/tasks/entry', (req, res) => {
     const commands = [];
     
     selectedProtocols.forEach(protocol => {
-        commands.push(`-L ${protocol}://:${localPort}/${targetIp}:${targetPort}`);
+        // 格式化目标IP地址（IPv6需要方括号）
+        const formattedTargetIp = formatIpForUrl(targetIp);
+        commands.push(`-L ${protocol}://:${localPort}/${formattedTargetIp}:${targetPort}`);
     });
     
     // 如果指定了出口节点
     if (exitNodeId) {
-        const exitTask = Array.from(gostTasks.values()).find(t => 
+        const exitTask = Array.from(gostTasks.values()).find(t =>
             t.taskId === exitNodeId && t.type === 'exit'
         );
         if (exitTask) {
             const exitNode = connectedNodes.get(exitTask.nodeId);
             if (exitNode) {
-                // 获取出口节点的IP地址
-                const exitIp = getNodeIp(exitNode);
-                commands.push(`-F relay+mws://${exitIp}:${exitTask.port}`);
+                // 获取出口节点的IP地址（支持自定义IP）
+                const exitIp = getNodeIp(exitNode, exitTask);
+                const exitPort = exitTask.customPort || exitTask.port;
+                commands.push(`-F relay+mws://${exitIp}:${exitPort}`);
             }
         }
     }
@@ -440,9 +456,54 @@ app.delete('/api/tasks/:taskId', (req, res) => {
     res.json({ message: '任务删除成功' });
 });
 
-// 获取节点IP地址
-function getNodeIp(node) {
-    // 尝试获取节点的外网IP
+// 验证IP地址格式（支持IPv4和IPv6）
+function isValidIpAddress(ip) {
+    // IPv4 正则表达式
+    const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+
+    // 简化的IPv6验证 - 检查基本格式
+    if (ip.includes(':')) {
+        // 基本IPv6格式检查
+        const parts = ip.split(':');
+        if (parts.length < 3 || parts.length > 8) return false;
+
+        // 检查每个部分是否为有效的十六进制
+        for (const part of parts) {
+            if (part !== '' && !/^[0-9a-fA-F]{1,4}$/.test(part)) {
+                return false;
+            }
+        }
+
+        // 检查双冒号（::）的使用
+        const doubleColonCount = (ip.match(/::/g) || []).length;
+        if (doubleColonCount > 1) return false;
+
+        return true;
+    }
+
+    return ipv4Regex.test(ip);
+}
+
+// 格式化IP地址用于URL（IPv6需要方括号）
+function formatIpForUrl(ip) {
+    if (!ip) return ip;
+
+    // 如果是IPv6地址且没有方括号，添加方括号
+    if (ip.includes(':') && !ip.startsWith('[')) {
+        return `[${ip}]`;
+    }
+
+    return ip;
+}
+
+// 获取节点IP地址（支持自定义IP）
+function getNodeIp(node, exitTask = null) {
+    // 如果出口任务配置了自定义IP，优先使用
+    if (exitTask && exitTask.customIp) {
+        return formatIpForUrl(exitTask.customIp);
+    }
+
+    // 尝试获取节点的外网IP（IPv4优先）
     for (const [interfaceName, addresses] of Object.entries(node.networkInterfaces || {})) {
         for (const addr of addresses) {
             if (addr.family === 'IPv4' && !addr.address.startsWith('127.') && !addr.address.startsWith('192.168.')) {
@@ -450,7 +511,16 @@ function getNodeIp(node) {
             }
         }
     }
-    
+
+    // 尝试获取IPv6外网地址
+    for (const [interfaceName, addresses] of Object.entries(node.networkInterfaces || {})) {
+        for (const addr of addresses) {
+            if (addr.family === 'IPv6' && !addr.address.startsWith('fe80:') && !addr.address.startsWith('::1')) {
+                return `[${addr.address}]`; // IPv6地址需要用方括号包围
+            }
+        }
+    }
+
     // 如果没有外网IP，返回内网IP
     for (const [interfaceName, addresses] of Object.entries(node.networkInterfaces || {})) {
         for (const addr of addresses) {
@@ -459,7 +529,7 @@ function getNodeIp(node) {
             }
         }
     }
-    
+
     return '127.0.0.1';
 }
 

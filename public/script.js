@@ -158,7 +158,9 @@ function renderExitTasks() {
                 </div>
                 <div class="node-info">
                     <p><strong>节点:</strong> ${escapeHtml(nodeName)}</p>
-                    <p><strong>端口:</strong> ${task.port}</p>
+                    <p><strong>监听端口:</strong> ${task.port}</p>
+                    ${task.customIp ? `<p><strong>自定义IP:</strong> <code>${escapeHtml(task.customIp)}</code></p>` : ''}
+                    ${task.customPort ? `<p><strong>连接端口:</strong> ${task.customPort}</p>` : ''}
                     <p><strong>命令:</strong> <code>${escapeHtml(task.command)}</code></p>
                     ${task.description ? `<p><strong>描述:</strong> ${escapeHtml(task.description)}</p>` : ''}
                     <p><strong>创建时间:</strong> ${formatDate(task.createdAt)}</p>
@@ -298,22 +300,40 @@ async function addExitTask() {
     const nodeId = document.getElementById('exit-task-node').value;
     const name = document.getElementById('exit-task-name').value.trim();
     const port = document.getElementById('exit-task-port').value || 34343;
+    const customIp = document.getElementById('exit-task-custom-ip').value.trim();
+    const customPort = document.getElementById('exit-task-custom-port').value;
     const description = document.getElementById('exit-task-description').value.trim();
-    
+
     if (!nodeId || !name) {
         showError('请选择节点并输入任务名称');
         return;
     }
-    
+
+    // 构建请求数据
+    const requestData = {
+        nodeId,
+        name,
+        port: parseInt(port),
+        description
+    };
+
+    // 添加自定义IP和端口（如果有）
+    if (customIp) {
+        requestData.customIp = customIp;
+    }
+    if (customPort) {
+        requestData.customPort = parseInt(customPort);
+    }
+
     try {
         const response = await fetch('/api/tasks/exit', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ nodeId, name, port: parseInt(port), description })
+            body: JSON.stringify(requestData)
         });
-        
+
         if (response.ok) {
             showSuccess('出口任务添加成功');
             closeModal('add-exit-task-modal');
