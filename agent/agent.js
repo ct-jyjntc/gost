@@ -347,10 +347,13 @@ class GostNodeAgent {
         
         try {
             console.log(`🚀 启动GOST进程: ${command}`);
-            
+
             // 解析命令
-            const args = command.split(' ').slice(1); // 移除 'gost'
-            const process = spawn('gost', args, {
+            const commandParts = command.split(' ');
+            const executable = commandParts[0]; // 获取可执行文件路径 (./gost)
+            const args = commandParts.slice(1); // 获取参数
+
+            const process = spawn(executable, args, {
                 stdio: ['pipe', 'pipe', 'pipe']
             });
             

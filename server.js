@@ -291,7 +291,7 @@ app.post('/api/tasks/exit', (req, res) => {
     }
 
     const taskId = Date.now().toString();
-    const command = `gost -L relay+mws://:${finalPort}`;
+    const command = `./gost -L relay+mws://:${finalPort}`;
 
     const task = {
         taskId,
@@ -330,7 +330,7 @@ app.post('/api/tasks/entry', (req, res) => {
     const selectedProtocols = protocols || ['tcp', 'udp'];
     
     // 构建GOST命令
-    let command = 'gost';
+    let command = './gost';
     const commands = [];
     
     selectedProtocols.forEach(protocol => {
@@ -355,7 +355,7 @@ app.post('/api/tasks/entry', (req, res) => {
         }
     }
     
-    command = `gost ${commands.join(' ')}`;
+    command = `./gost ${commands.join(' ')}`;
     
     const task = {
         taskId,
