@@ -15,13 +15,25 @@ function setupEventListeners() {
         e.preventDefault();
         addExitTask();
     });
-    
+
     // 入口任务表单提交
     document.getElementById('add-entry-task-form').addEventListener('submit', function(e) {
         e.preventDefault();
         addEntryTask();
     });
-    
+
+    // 编辑出口任务表单提交
+    document.getElementById('edit-exit-task-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        saveExitTaskEdit();
+    });
+
+    // 编辑入口任务表单提交
+    document.getElementById('edit-entry-task-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        saveEntryTaskEdit();
+    });
+
     // 模态框点击外部关闭
     window.addEventListener('click', function(e) {
         if (e.target.classList.contains('modal')) {
@@ -36,17 +48,17 @@ function showTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(content => {
         content.classList.remove('active');
     });
-    
-    // 移除所有标签按钮的激活状态
-    document.querySelectorAll('.tab-button').forEach(button => {
-        button.classList.remove('active');
+
+    // 移除所有导航项的激活状态
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
     });
-    
+
     // 显示选中的标签内容
     document.getElementById(tabName).classList.add('active');
-    
-    // 激活对应的标签按钮
-    event.target.classList.add('active');
+
+    // 激活对应的导航项
+    event.target.closest('.nav-item').classList.add('active');
 }
 
 // 加载数据
@@ -111,13 +123,36 @@ function renderNodes() {
                     <p><strong>节点ID:</strong> ${escapeHtml(node.nodeId)}</p>
                     <p><strong>主机名:</strong> ${escapeHtml(node.hostname)}</p>
                     <p><strong>平台:</strong> ${escapeHtml(node.platform)}</p>
-                    ${node.systemInfo ? `
-                        <p><strong>内存使用:</strong> ${formatMemory(node.systemInfo.memory)}</p>
-                        <p><strong>运行时间:</strong> ${formatUptime(node.systemInfo.uptime)}</p>
-                    ` : ''}
                     <p><strong>运行任务:</strong> ${(node.processes || []).length} 个</p>
                     ${lastHeartbeat ? `<p><strong>最后心跳:</strong> ${formatDate(lastHeartbeat)}</p>` : ''}
+                    ${node.systemInfo ? `<p><strong>运行时间:</strong> ${formatUptime(node.systemInfo.uptime)}</p>` : ''}
                 </div>
+                ${node.systemInfo ? `
+                <div class="system-stats">
+                    <div class="stat-item">
+                        <div class="stat-label">CPU</div>
+                        <div class="stat-value">${formatCpuUsage(node.systemInfo.cpu)}</div>
+                        <div class="stat-bar">
+                            <div class="stat-fill cpu-fill" style="width: ${(node.systemInfo.cpu?.usage || 0)}%"></div>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">RAM</div>
+                        <div class="stat-value">${formatMemoryUsage(node.systemInfo.memory)}</div>
+                        <div class="stat-bar">
+                            <div class="stat-fill memory-fill" style="width: ${(node.systemInfo.memory?.usage || 0) * 100}%"></div>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">上行</div>
+                        <div class="stat-value">${formatNetworkRate(node.systemInfo.network?.txRate)}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">下行</div>
+                        <div class="stat-value">${formatNetworkRate(node.systemInfo.network?.rxRate)}</div>
+                    </div>
+                </div>
+                ` : ''}
                 <div class="node-actions">
                     <button class="btn btn-primary" onclick="showNodeDetails('${node.nodeId}')">详情</button>
                     ${isOnline ? `
@@ -166,10 +201,11 @@ function renderExitTasks() {
                     <p><strong>创建时间:</strong> ${formatDate(task.createdAt)}</p>
                 </div>
                 <div class="node-actions">
-                    ${task.status === 'running' 
+                    ${task.status === 'running'
                         ? `<button class="btn btn-danger" onclick="stopTask('${task.taskId}')">停止</button>`
                         : `<button class="btn btn-success" onclick="startTask('${task.taskId}')">启动</button>`
                     }
+                    <button class="btn btn-secondary" onclick="editExitTask('${task.taskId}')">编辑</button>
                     <button class="btn btn-danger" onclick="deleteTask('${task.taskId}', '${escapeHtml(task.name)}')">删除</button>
                 </div>
             </div>
@@ -181,7 +217,7 @@ function renderExitTasks() {
 function renderEntryTasks() {
     const container = document.getElementById('entry-tasks-list');
     const entryTasks = tasks.filter(task => task.type === 'entry');
-    
+
     if (entryTasks.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
@@ -191,18 +227,31 @@ function renderEntryTasks() {
         `;
         return;
     }
-    
+
+    // 保存当前选中状态
+    const currentSelection = new Set();
+    const existingCheckboxes = container.querySelectorAll('.task-checkbox:checked');
+    existingCheckboxes.forEach(checkbox => {
+        currentSelection.add(checkbox.dataset.taskId);
+    });
+
     container.innerHTML = entryTasks.map(task => {
         const node = nodes.find(n => n.nodeId === task.nodeId);
         const nodeName = node ? node.nodeName : '节点离线';
-        
+
         const exitTask = task.exitNodeId ? tasks.find(t => t.taskId === task.exitNodeId) : null;
         const exitName = exitTask ? exitTask.name : '直连';
-        
+
+        // 检查是否应该被选中
+        const isChecked = currentSelection.has(task.taskId);
+
         return `
-            <div class="node-card">
+            <div class="node-card task-card ${isChecked ? 'selected' : ''}" data-task-id="${task.taskId}">
                 <div class="node-header">
-                    <div class="node-title">${escapeHtml(task.name)}</div>
+                    <div style="display: flex; align-items: center;">
+                        <input type="checkbox" class="task-checkbox" data-task-id="${task.taskId}" ${isChecked ? 'checked' : ''} onchange="updateSelection()">
+                        <div class="node-title">${escapeHtml(task.name)}</div>
+                    </div>
                     <div class="node-status ${getTaskStatusClass(task.status)}">
                         ${getTaskStatusText(task.status)}
                     </div>
@@ -217,15 +266,19 @@ function renderEntryTasks() {
                     <p><strong>创建时间:</strong> ${formatDate(task.createdAt)}</p>
                 </div>
                 <div class="node-actions">
-                    ${task.status === 'running' 
+                    ${task.status === 'running'
                         ? `<button class="btn btn-danger" onclick="stopTask('${task.taskId}')">停止</button>`
                         : `<button class="btn btn-success" onclick="startTask('${task.taskId}')">启动</button>`
                     }
+                    <button class="btn btn-secondary" onclick="editEntryTask('${task.taskId}')">编辑</button>
                     <button class="btn btn-danger" onclick="deleteTask('${task.taskId}', '${escapeHtml(task.name)}')">删除</button>
                 </div>
             </div>
         `;
     }).join('');
+
+    // 重新更新选择状态和批量操作控件
+    updateSelectionAfterRender();
 }
 
 // 更新节点选项
@@ -285,6 +338,11 @@ function showAddEntryTaskModal() {
     document.getElementById('entry-task-name').focus();
 }
 
+// 打开模态框
+function openModal(modalId) {
+    document.getElementById(modalId).style.display = 'block';
+}
+
 // 关闭模态框
 function closeModal(modalId) {
     document.getElementById(modalId).style.display = 'none';
@@ -295,8 +353,16 @@ function closeModal(modalId) {
     }
 }
 
+// 防重复提交标志
+let isSubmittingExitTask = false;
+
 // 添加出口任务
 async function addExitTask() {
+    // 防重复提交
+    if (isSubmittingExitTask) {
+        return;
+    }
+
     const nodeId = document.getElementById('exit-task-node').value;
     const name = document.getElementById('exit-task-name').value.trim();
     const port = document.getElementById('exit-task-port').value || 34343;
@@ -308,6 +374,8 @@ async function addExitTask() {
         showError('请选择节点并输入任务名称');
         return;
     }
+
+    isSubmittingExitTask = true;
 
     // 构建请求数据
     const requestData = {
@@ -345,16 +413,29 @@ async function addExitTask() {
     } catch (error) {
         console.error('添加出口任务失败:', error);
         showError('网络错误，请重试');
+    } finally {
+        // 重置提交标志
+        isSubmittingExitTask = false;
     }
 }
 
+// 防重复提交标志
+let isSubmittingEntryTask = false;
+
 // 添加入口任务
 async function addEntryTask() {
+    // 防重复提交
+    if (isSubmittingEntryTask) {
+        return;
+    }
+
     const nodeId = document.getElementById('entry-task-node').value;
     const name = document.getElementById('entry-task-name').value.trim();
     const localPort = document.getElementById('entry-task-port').value;
     const targetIp = document.getElementById('entry-task-target-ip').value.trim();
     const targetPort = document.getElementById('entry-task-target-port').value;
+
+    isSubmittingEntryTask = true;
     const exitNodeId = document.getElementById('entry-task-exit').value;
     
     // 获取选中的协议
@@ -411,6 +492,9 @@ async function addEntryTask() {
     } catch (error) {
         console.error('添加入口任务失败:', error);
         showError('网络错误，请重试');
+    } finally {
+        // 重置提交标志
+        isSubmittingEntryTask = false;
     }
 }
 
@@ -518,7 +602,7 @@ function formatUptime(seconds) {
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    
+
     if (days > 0) {
         return `${days}天 ${hours}小时 ${minutes}分钟`;
     } else if (hours > 0) {
@@ -526,6 +610,41 @@ function formatUptime(seconds) {
     } else {
         return `${minutes}分钟`;
     }
+}
+
+// 格式化CPU使用率
+function formatCpuUsage(cpu) {
+    if (!cpu) return '0%';
+    return `${(cpu.usage || 0).toFixed(1)}%`;
+}
+
+// 格式化内存使用情况
+function formatMemoryUsage(memory) {
+    if (!memory) return '0%';
+
+    const used = (memory.used || (memory.total - memory.free)) / (1024 * 1024 * 1024);
+    const total = memory.total / (1024 * 1024 * 1024);
+    const usage = (memory.usage || 0) * 100;
+
+    return `${used.toFixed(1)}G / ${total.toFixed(1)}G (${usage.toFixed(1)}%)`;
+}
+
+
+
+// 格式化网络速率
+function formatNetworkRate(rate) {
+    if (!rate || rate === 0) return '0 B/s';
+
+    const units = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
+    let unitIndex = 0;
+    let value = rate;
+
+    while (value >= 1024 && unitIndex < units.length - 1) {
+        value /= 1024;
+        unitIndex++;
+    }
+
+    return `${value.toFixed(1)} ${units[unitIndex]}`;
 }
 
 function getTaskStatusClass(status) {
@@ -609,5 +728,389 @@ function showNotification(message, type) {
     }, 3000);
 }
 
+// 编辑出口任务
+function editExitTask(taskId) {
+    const task = tasks.find(t => t.taskId === taskId);
+    if (!task) {
+        showError('任务不存在');
+        return;
+    }
+
+    if (task.status === 'running') {
+        showError('请先停止任务再进行编辑');
+        return;
+    }
+
+    // 填充表单
+    document.getElementById('edit-exit-task-id').value = taskId;
+    document.getElementById('edit-exit-task-name').value = task.name;
+    document.getElementById('edit-exit-task-port').value = task.port;
+    document.getElementById('edit-exit-task-custom-ip').value = task.customIp || '';
+    document.getElementById('edit-exit-task-custom-port').value = task.customPort || '';
+    document.getElementById('edit-exit-task-description').value = task.description || '';
+
+    openModal('edit-exit-task-modal');
+}
+
+// 编辑入口任务
+function editEntryTask(taskId) {
+    const task = tasks.find(t => t.taskId === taskId);
+    if (!task) {
+        showError('任务不存在');
+        return;
+    }
+
+    if (task.status === 'running') {
+        showError('请先停止任务再进行编辑');
+        return;
+    }
+
+    // 填充表单
+    document.getElementById('edit-entry-task-id').value = taskId;
+    document.getElementById('edit-entry-task-name').value = task.name;
+    document.getElementById('edit-entry-task-local-port').value = task.localPort;
+    document.getElementById('edit-entry-task-target-ip').value = task.targetIp;
+    document.getElementById('edit-entry-task-target-port').value = task.targetPort;
+    document.getElementById('edit-entry-task-exit-node').value = task.exitNodeId || '';
+
+    // 设置协议复选框
+    document.getElementById('edit-entry-task-tcp').checked = task.protocols.includes('tcp');
+    document.getElementById('edit-entry-task-udp').checked = task.protocols.includes('udp');
+
+    // 更新出口节点选项
+    updateEditEntryExitNodeOptions();
+
+    openModal('edit-entry-task-modal');
+}
+
+// 更新编辑表单中的出口节点选项
+function updateEditEntryExitNodeOptions() {
+    const select = document.getElementById('edit-entry-task-exit-node');
+    const currentValue = select.value;
+
+    const exitTasks = tasks.filter(task => task.type === 'exit');
+
+    select.innerHTML = '<option value="">直连（不使用出口节点）</option>';
+
+    exitTasks.forEach(task => {
+        const node = nodes.find(n => n.nodeId === task.nodeId);
+        const nodeName = node ? node.nodeName : '节点离线';
+        const option = document.createElement('option');
+        option.value = task.taskId;
+        option.textContent = `${task.name} (${nodeName})`;
+        select.appendChild(option);
+    });
+
+    // 恢复之前的选择
+    select.value = currentValue;
+}
+
+// 保存出口任务编辑
+async function saveExitTaskEdit() {
+    const taskId = document.getElementById('edit-exit-task-id').value;
+    const name = document.getElementById('edit-exit-task-name').value.trim();
+    const port = document.getElementById('edit-exit-task-port').value;
+    const customIp = document.getElementById('edit-exit-task-custom-ip').value.trim();
+    const customPort = document.getElementById('edit-exit-task-custom-port').value;
+    const description = document.getElementById('edit-exit-task-description').value.trim();
+
+    if (!name) {
+        showError('请输入任务名称');
+        return;
+    }
+
+    const requestData = {
+        name,
+        description
+    };
+
+    if (port) requestData.port = parseInt(port);
+    if (customIp) requestData.customIp = customIp;
+    if (customPort) requestData.customPort = parseInt(customPort);
+
+    try {
+        const response = await fetch(`/api/tasks/${taskId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        if (response.ok) {
+            showSuccess('出口任务编辑成功');
+            closeModal('edit-exit-task-modal');
+            loadData();
+        } else {
+            const error = await response.json();
+            showError(error.error || '编辑任务失败');
+        }
+    } catch (error) {
+        console.error('编辑出口任务失败:', error);
+        showError('网络错误，请重试');
+    }
+}
+
+// 保存入口任务编辑
+async function saveEntryTaskEdit() {
+    const taskId = document.getElementById('edit-entry-task-id').value;
+    const name = document.getElementById('edit-entry-task-name').value.trim();
+    const localPort = document.getElementById('edit-entry-task-local-port').value;
+    const targetIp = document.getElementById('edit-entry-task-target-ip').value.trim();
+    const targetPort = document.getElementById('edit-entry-task-target-port').value;
+    const exitNodeId = document.getElementById('edit-entry-task-exit-node').value;
+
+    const protocols = [];
+    if (document.getElementById('edit-entry-task-tcp').checked) protocols.push('tcp');
+    if (document.getElementById('edit-entry-task-udp').checked) protocols.push('udp');
+
+    if (!name || !localPort || !targetIp || !targetPort) {
+        showError('请填写所有必填字段');
+        return;
+    }
+
+    if (protocols.length === 0) {
+        showError('请至少选择一种协议');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/tasks/${taskId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name,
+                localPort: parseInt(localPort),
+                targetIp,
+                targetPort: parseInt(targetPort),
+                exitNodeId: exitNodeId || null,
+                protocols
+            })
+        });
+
+        if (response.ok) {
+            showSuccess('入口任务编辑成功');
+            closeModal('edit-entry-task-modal');
+            loadData();
+        } else {
+            const error = await response.json();
+            showError(error.error || '编辑任务失败');
+        }
+    } catch (error) {
+        console.error('编辑入口任务失败:', error);
+        showError('网络错误，请重试');
+    }
+}
+
+
+
+// 批量操作功能
+let selectedTasks = new Set();
+
+// 更新选择状态
+function updateSelection() {
+    const checkboxes = document.querySelectorAll('.task-checkbox');
+    selectedTasks.clear();
+
+    checkboxes.forEach(checkbox => {
+        if (checkbox.checked) {
+            selectedTasks.add(checkbox.dataset.taskId);
+            checkbox.closest('.task-card').classList.add('selected');
+        } else {
+            checkbox.closest('.task-card').classList.remove('selected');
+        }
+    });
+
+    const count = selectedTasks.size;
+    document.getElementById('selected-count').textContent = `已选择 ${count} 个任务`;
+
+    const batchControls = document.getElementById('batch-controls');
+    if (count > 0) {
+        batchControls.style.display = 'flex';
+        updateBatchOptions();
+    } else {
+        batchControls.style.display = 'none';
+    }
+}
+
+// 渲染后更新选择状态（用于保持选中状态）
+function updateSelectionAfterRender() {
+    const checkboxes = document.querySelectorAll('.task-checkbox');
+    let hasSelection = false;
+
+    checkboxes.forEach(checkbox => {
+        if (checkbox.checked) {
+            hasSelection = true;
+            selectedTasks.add(checkbox.dataset.taskId);
+            checkbox.closest('.task-card').classList.add('selected');
+        }
+    });
+
+    const count = selectedTasks.size;
+    const selectedCountElement = document.getElementById('selected-count');
+    if (selectedCountElement) {
+        selectedCountElement.textContent = `已选择 ${count} 个任务`;
+    }
+
+    const batchControls = document.getElementById('batch-controls');
+    if (batchControls) {
+        if (count > 0) {
+            batchControls.style.display = 'flex';
+            updateBatchOptions();
+        } else {
+            batchControls.style.display = 'none';
+        }
+    }
+}
+
+// 清除选择
+function clearSelection() {
+    const checkboxes = document.querySelectorAll('.task-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+        checkbox.closest('.task-card').classList.remove('selected');
+    });
+    selectedTasks.clear();
+    document.getElementById('batch-controls').style.display = 'none';
+}
+
+// 更新批量操作选项
+function updateBatchOptions() {
+    // 更新目标节点选项
+    const nodeSelect = document.getElementById('batch-target-node');
+    nodeSelect.innerHTML = '<option value="">选择目标节点</option>';
+    nodes.forEach(node => {
+        const option = document.createElement('option');
+        option.value = node.nodeId;
+        option.textContent = `${node.nodeName} (${node.hostname})`;
+        nodeSelect.appendChild(option);
+    });
+
+    // 更新出口节点选项
+    const exitSelect = document.getElementById('batch-target-exit');
+    exitSelect.innerHTML = '<option value="">直连（不使用出口节点）</option>';
+    const exitTasks = tasks.filter(task => task.type === 'exit');
+    exitTasks.forEach(task => {
+        const node = nodes.find(n => n.nodeId === task.nodeId);
+        const nodeName = node ? node.nodeName : '节点离线';
+        const option = document.createElement('option');
+        option.value = task.taskId;
+        option.textContent = `${task.name} (${nodeName})`;
+        exitSelect.appendChild(option);
+    });
+}
+
+// 批量切换入口节点
+async function batchSwitchNode() {
+    const nodeId = document.getElementById('batch-target-node').value;
+    if (!nodeId) {
+        showError('请选择目标节点');
+        return;
+    }
+
+    if (selectedTasks.size === 0) {
+        showError('请选择要操作的任务');
+        return;
+    }
+
+    if (!confirm(`确定要将 ${selectedTasks.size} 个任务切换到选定的节点吗？`)) {
+        return;
+    }
+
+    await performBatchOperation('switch_node', { nodeId });
+}
+
+// 批量切换出口节点
+async function batchSwitchExit() {
+    const exitNodeId = document.getElementById('batch-target-exit').value;
+
+    if (selectedTasks.size === 0) {
+        showError('请选择要操作的任务');
+        return;
+    }
+
+    const exitName = exitNodeId ?
+        tasks.find(t => t.taskId === exitNodeId)?.name || '未知出口' :
+        '直连';
+
+    if (!confirm(`确定要将 ${selectedTasks.size} 个任务切换到 "${exitName}" 吗？`)) {
+        return;
+    }
+
+    await performBatchOperation('switch_exit', { exitNodeId });
+}
+
+// 批量停止任务
+async function batchStopTasks() {
+    if (selectedTasks.size === 0) {
+        showError('请选择要操作的任务');
+        return;
+    }
+
+    if (!confirm(`确定要停止 ${selectedTasks.size} 个任务吗？`)) {
+        return;
+    }
+
+    await performBatchOperation('stop');
+}
+
+// 批量删除任务
+async function batchDeleteTasks() {
+    if (selectedTasks.size === 0) {
+        showError('请选择要操作的任务');
+        return;
+    }
+
+    if (!confirm(`确定要删除 ${selectedTasks.size} 个任务吗？此操作不可恢复！`)) {
+        return;
+    }
+
+    await performBatchOperation('delete');
+}
+
+// 执行批量操作
+async function performBatchOperation(action, params = {}) {
+    try {
+        const requestData = {
+            action,
+            taskIds: Array.from(selectedTasks),
+            ...params
+        };
+
+        const response = await fetch('/api/tasks/batch', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            showSuccess(result.message);
+
+            // 显示详细结果
+            if (result.errorCount > 0) {
+                const errors = result.results.filter(r => !r.success);
+                console.log('批量操作错误:', errors);
+            }
+
+            clearSelection();
+            loadData();
+        } else {
+            const error = await response.json();
+            showError(error.error || '批量操作失败');
+        }
+    } catch (error) {
+        console.error('批量操作失败:', error);
+        showError('网络错误，请重试');
+    }
+}
+
+// 页面加载时获取数据
+loadData();
+
 // 定期刷新数据
-setInterval(loadData, 10000); // 每10秒刷新一次
+setInterval(loadData, 1000); // 每1秒刷新一次

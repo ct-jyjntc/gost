@@ -16,7 +16,7 @@ class GostNodeAgent {
             // 重连间隔
             reconnectInterval: config.reconnectInterval || 5000,
             // 心跳间隔
-            heartbeatInterval: config.heartbeatInterval || 30000,
+            heartbeatInterval: config.heartbeatInterval || 1000,
             // 节点类型 (entry/exit)
             nodeType: config.nodeType || 'auto',
             // 配置文件路径
@@ -271,8 +271,100 @@ class GostNodeAgent {
         }
     }
     
+    // 获取CPU使用率
+    async getCpuUsage() {
+        return new Promise((resolve) => {
+            // 如果有缓存的CPU数据且时间间隔小于500ms，直接返回缓存
+            const now = Date.now();
+            if (this.lastCpuMeasure && (now - this.lastCpuTime) < 500) {
+                resolve(this.lastCpuUsage || 0);
+                return;
+            }
+
+            const startMeasure = process.cpuUsage();
+            const startTime = Date.now();
+
+            setTimeout(() => {
+                const endMeasure = process.cpuUsage(startMeasure);
+                const endTime = Date.now();
+                const totalTime = (endTime - startTime) * 1000; // 转换为微秒
+
+                const cpuPercent = ((endMeasure.user + endMeasure.system) / totalTime) * 100;
+                const usage = Math.min(100, Math.max(0, cpuPercent));
+
+                // 缓存结果
+                this.lastCpuUsage = usage;
+                this.lastCpuTime = now;
+
+                resolve(usage);
+            }, 100);
+        });
+    }
+
+
+
+    // 获取网络流量信息
+    getNetworkStats() {
+        try {
+            const { execSync } = require('child_process');
+            let networkInfo = { rxBytes: 0, txBytes: 0, rxRate: 0, txRate: 0 };
+
+            if (os.platform() === 'win32') {
+                // Windows - 使用 typeperf 或 wmic
+                networkInfo = { rxBytes: 0, txBytes: 0, rxRate: 0, txRate: 0 };
+            } else {
+                // Linux/macOS
+                const output = execSync('cat /proc/net/dev 2>/dev/null || netstat -ibn | grep -v "Name"', { encoding: 'utf8' });
+
+                let totalRx = 0, totalTx = 0;
+                const lines = output.split('\n');
+
+                for (const line of lines) {
+                    if (line.includes(':')) {
+                        // Linux format
+                        const parts = line.split(/\s+/);
+                        if (parts.length >= 10 && !parts[0].includes('lo:')) {
+                            totalRx += parseInt(parts[1]) || 0;
+                            totalTx += parseInt(parts[9]) || 0;
+                        }
+                    } else if (line.match(/^\s*\w+/)) {
+                        // macOS format
+                        const parts = line.split(/\s+/);
+                        if (parts.length >= 7 && !parts[0].includes('lo')) {
+                            totalRx += parseInt(parts[6]) || 0;
+                            totalTx += parseInt(parts[9]) || 0;
+                        }
+                    }
+                }
+
+                // 计算速率 (如果有上次的数据)
+                const now = Date.now();
+                if (this.lastNetworkStats && this.lastNetworkTime) {
+                    const timeDiff = (now - this.lastNetworkTime) / 1000; // 秒
+                    networkInfo.rxRate = Math.max(0, (totalRx - this.lastNetworkStats.rxBytes) / timeDiff);
+                    networkInfo.txRate = Math.max(0, (totalTx - this.lastNetworkStats.txBytes) / timeDiff);
+                }
+
+                networkInfo.rxBytes = totalRx;
+                networkInfo.txBytes = totalTx;
+
+                // 保存当前数据用于下次计算速率
+                this.lastNetworkStats = { rxBytes: totalRx, txBytes: totalTx };
+                this.lastNetworkTime = now;
+            }
+
+            return networkInfo;
+        } catch (error) {
+            console.error('获取网络信息失败:', error);
+            return { rxBytes: 0, txBytes: 0, rxRate: 0, txRate: 0 };
+        }
+    }
+
     // 发送心跳
-    sendHeartbeat() {
+    async sendHeartbeat() {
+        const cpuUsage = await this.getCpuUsage();
+        const networkStats = this.getNetworkStats();
+
         const heartbeat = {
             type: 'heartbeat',
             data: {
@@ -282,18 +374,23 @@ class GostNodeAgent {
                 memory: {
                     total: os.totalmem(),
                     free: os.freemem(),
+                    used: os.totalmem() - os.freemem(),
                     usage: (os.totalmem() - os.freemem()) / os.totalmem()
                 },
-                loadavg: os.loadavg(),
+                cpu: {
+                    usage: cpuUsage,
+                    loadavg: os.loadavg()
+                },
+                network: networkStats,
                 processes: Array.from(this.processes.keys()).map(id => ({
                     id,
                     status: 'running'
                 }))
             }
         };
-        
+
         this.sendMessage(heartbeat);
-    }  
+    }
   // 处理消息
     handleMessage(data) {
         try {

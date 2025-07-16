@@ -7,17 +7,32 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🚀 GOST管理面板</h1>
-            <p>轻松管理你的代理节点</p>
-        </header>
+    <div class="app-container">
+        <!-- 左侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>🚀 GOST</h1>
+                <p>管理面板</p>
+            </div>
 
-        <div class="tabs">
-            <button class="tab-button active" onclick="showTab('nodes')">节点管理</button>
-            <button class="tab-button" onclick="showTab('exit-tasks')">出口任务</button>
-            <button class="tab-button" onclick="showTab('entry-tasks')">入口任务</button>
-        </div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" onclick="showTab('nodes')">
+                    <span class="nav-icon">🖥️</span>
+                    <span class="nav-text">节点管理</span>
+                </button>
+                <button class="nav-item" onclick="showTab('exit-tasks')">
+                    <span class="nav-icon">🚪</span>
+                    <span class="nav-text">出口任务</span>
+                </button>
+                <button class="nav-item" onclick="showTab('entry-tasks')">
+                    <span class="nav-icon">🔗</span>
+                    <span class="nav-text">入口任务</span>
+                </button>
+            </nav>
+        </aside>
+
+        <!-- 右侧主内容区 -->
+        <main class="main-content">
 
         <!-- 节点管理 -->
         <div id="nodes" class="tab-content active">
@@ -61,9 +76,31 @@
                 <h2>入口任务管理</h2>
                 <button class="btn btn-primary" onclick="showAddEntryTaskModal()">+ 添加入口任务</button>
             </div>
-            
+
             <div class="info-box">
                 <p><strong>说明：</strong>入口任务支持TCP/UDP端口转发，可选择连接到出口任务</p>
+            </div>
+
+            <!-- 批量操作控制栏 -->
+            <div id="batch-controls" class="batch-controls" style="display: none;">
+                <div class="batch-info">
+                    <span id="selected-count">已选择 0 个任务</span>
+                    <button class="btn btn-secondary btn-sm" onclick="clearSelection()">取消选择</button>
+                </div>
+                <div class="batch-actions">
+                    <select id="batch-target-node" class="batch-select">
+                        <option value="">选择目标节点</option>
+                    </select>
+                    <button class="btn btn-warning btn-sm" onclick="batchSwitchNode()">切换入口</button>
+
+                    <select id="batch-target-exit" class="batch-select">
+                        <option value="">选择出口节点</option>
+                    </select>
+                    <button class="btn btn-info btn-sm" onclick="batchSwitchExit()">切换出口</button>
+
+                    <button class="btn btn-danger btn-sm" onclick="batchStopTasks()">批量暂停</button>
+                    <button class="btn btn-danger btn-sm" onclick="batchDeleteTasks()">批量删除</button>
+                </div>
             </div>
 
             <div id="entry-tasks-list" class="nodes-list">
@@ -158,6 +195,45 @@ nohup node agent.js --panel ws://你的面板IP:3000 --name "节点名称" > age
         </div>
     </div>
 
+    <!-- 编辑出口任务模态框 -->
+    <div id="edit-exit-task-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>编辑出口任务</h3>
+                <span class="close" onclick="closeModal('edit-exit-task-modal')">&times;</span>
+            </div>
+            <form id="edit-exit-task-form">
+                <input type="hidden" id="edit-exit-task-id">
+                <div class="form-group">
+                    <label for="edit-exit-task-name">任务名称 *</label>
+                    <input type="text" id="edit-exit-task-name" required placeholder="例如: 香港出口服务">
+                </div>
+                <div class="form-group">
+                    <label for="edit-exit-task-port">监听端口</label>
+                    <input type="number" id="edit-exit-task-port" placeholder="34343" min="1" max="65535">
+                </div>
+                <div class="form-group">
+                    <label for="edit-exit-task-custom-ip">自定义IP地址</label>
+                    <input type="text" id="edit-exit-task-custom-ip" placeholder="留空则自动获取，支持IPv4/IPv6">
+                    <small class="form-help">用于NAT环境或指定IPv6地址，例如: 1.2.3.4 或 2001:db8::1</small>
+                </div>
+                <div class="form-group">
+                    <label for="edit-exit-task-custom-port">自定义端口</label>
+                    <input type="number" id="edit-exit-task-custom-port" placeholder="留空则使用监听端口" min="1" max="65535">
+                    <small class="form-help">用于端口映射场景，入口节点将连接此端口</small>
+                </div>
+                <div class="form-group">
+                    <label for="edit-exit-task-description">描述</label>
+                    <textarea id="edit-exit-task-description" placeholder="任务描述信息（可选）"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('edit-exit-task-modal')">取消</button>
+                    <button type="submit" class="btn btn-primary">保存修改</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- 添加入口任务模态框 -->
     <div id="add-entry-task-modal" class="modal">
         <div class="modal-content">
@@ -213,6 +289,61 @@ nohup node agent.js --panel ws://你的面板IP:3000 --name "节点名称" > age
                 </div>
             </form>
         </div>
+    </div>
+
+    <!-- 编辑入口任务模态框 -->
+    <div id="edit-entry-task-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>编辑入口任务</h3>
+                <span class="close" onclick="closeModal('edit-entry-task-modal')">&times;</span>
+            </div>
+            <form id="edit-entry-task-form">
+                <input type="hidden" id="edit-entry-task-id">
+                <div class="form-group">
+                    <label for="edit-entry-task-name">任务名称 *</label>
+                    <input type="text" id="edit-entry-task-name" required placeholder="例如: 本地代理服务">
+                </div>
+                <div class="form-group">
+                    <label for="edit-entry-task-local-port">本地端口 *</label>
+                    <input type="number" id="edit-entry-task-local-port" required placeholder="8080" min="1" max="65535">
+                </div>
+                <div class="form-group">
+                    <label for="edit-entry-task-target-ip">目标IP地址 *</label>
+                    <input type="text" id="edit-entry-task-target-ip" required placeholder="8.8.8.8 或 2001:db8::1">
+                </div>
+                <div class="form-group">
+                    <label for="edit-entry-task-target-port">目标端口 *</label>
+                    <input type="number" id="edit-entry-task-target-port" required placeholder="80" min="1" max="65535">
+                </div>
+                <div class="form-group">
+                    <label for="edit-entry-task-exit-node">出口节点</label>
+                    <select id="edit-entry-task-exit-node">
+                        <option value="">直连（不使用出口节点）</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>协议类型</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="edit-entry-task-tcp" value="tcp" checked>
+                            TCP
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="edit-entry-task-udp" value="udp" checked>
+                            UDP
+                        </label>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('edit-entry-task-modal')">取消</button>
+                    <button type="submit" class="btn btn-primary">保存修改</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+        </main>
     </div>
 
     <script src="script.js"></script>

@@ -4,15 +4,15 @@
       "32e4870f7be3",
       {
         "nodeId": "32e4870f7be3",
-        "nodeName": "test-node",
+        "nodeName": "xxxx",
         "nodeType": "auto",
         "platform": "darwin",
         "arch": "arm64",
         "hostname": "Mac-mini.local",
-        "uptime": 424990,
+        "uptime": 482403,
         "memory": {
           "total": 17179869184,
-          "free": 525058048
+          "free": 210157568
         },
         "cpus": 10,
         "networkInterfaces": {
@@ -165,9 +165,52 @@
         },
         "version": "1.0.0",
         "runningProcesses": [],
-        "registeredAt": "2025-07-15T23:15:32.316Z"
+        "registeredAt": "2025-07-16T15:12:23.962Z"
       }
     ]
   ],
-  "gostTasks": []
+  "gostTasks": [
+    [
+      "1752678122767",
+      {
+        "taskId": "1752678122767",
+        "nodeId": "32e4870f7be3",
+        "name": "test-01",
+        "type": "entry",
+        "command": "gost -L tcp://:34344/31.22.111.51:33460 -L udp://:34344/31.22.111.51:33460 -F relay+mws://10.10.10.153:34343",
+        "localPort": 34344,
+        "targetIp": "31.22.111.51",
+        "targetPort": 33460,
+        "exitNodeId": "1752678106878",
+        "protocols": [
+          "tcp",
+          "udp"
+        ],
+        "status": "stopped",
+        "createdAt": "2025-07-16T15:02:02.768Z",
+        "pid": null,
+        "startedAt": "2025-07-16T15:12:48.517Z",
+        "stoppedAt": "2025-07-16T15:12:49.079Z"
+      }
+    ],
+    [
+      "1752678449529",
+      {
+        "taskId": "1752678449529",
+        "nodeId": "32e4870f7be3",
+        "name": "test",
+        "description": "",
+        "type": "exit",
+        "command": "gost -L relay+mws://:34343",
+        "port": 34343,
+        "customIp": null,
+        "customPort": null,
+        "status": "stopped",
+        "createdAt": "2025-07-16T15:07:29.529Z",
+        "pid": null,
+        "startedAt": "2025-07-16T15:12:30.146Z",
+        "stoppedAt": "2025-07-16T15:12:50.695Z"
+      }
+    ]
+  ]
 }

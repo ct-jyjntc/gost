@@ -166,12 +166,14 @@ function handleNodeRegister(ws, nodeData) {
 function handleNodeHeartbeat(data) {
     const { nodeId } = data;
     const node = connectedNodes.get(nodeId);
-    
+
     if (node) {
         node.lastHeartbeat = Date.now();
         node.systemInfo = {
             uptime: data.uptime,
             memory: data.memory,
+            cpu: data.cpu,
+            network: data.network,
             loadavg: data.loadavg,
             processes: data.processes
         };
@@ -291,7 +293,10 @@ app.post('/api/tasks/exit', (req, res) => {
     }
 
     const taskId = Date.now().toString();
-    const command = `./gost -L relay+mws://:${finalPort}`;
+
+    // 根据节点操作系统生成命令
+    const gostExecutable = getGostExecutable(node);
+    const command = `${gostExecutable} -L relay+mws://:${finalPort}`;
 
     const task = {
         taskId,
@@ -355,7 +360,9 @@ app.post('/api/tasks/entry', (req, res) => {
         }
     }
     
-    command = `./gost ${commands.join(' ')}`;
+    // 根据节点操作系统生成命令
+    const gostExecutable = getGostExecutable(node);
+    command = `${gostExecutable} ${commands.join(' ')}`;
     
     const task = {
         taskId,
@@ -432,15 +439,295 @@ app.post('/api/tasks/:taskId/stop', (req, res) => {
     }
 });
 
+// 编辑GOST任务
+app.put('/api/tasks/:taskId', (req, res) => {
+    const { taskId } = req.params;
+    const task = gostTasks.get(taskId);
+
+    if (!task) {
+        return res.status(404).json({ error: '任务不存在' });
+    }
+
+    // 检查任务是否正在运行
+    if (task.status === 'running') {
+        return res.status(400).json({ error: '请先停止任务再进行编辑' });
+    }
+
+    try {
+        if (task.type === 'exit') {
+            // 编辑出口任务
+            const { name, description, port, customIp, customPort } = req.body;
+
+            if (!name) {
+                return res.status(400).json({ error: '任务名称不能为空' });
+            }
+
+            // 验证端口
+            const finalPort = customPort || port || task.port;
+            if (finalPort < 1 || finalPort > 65535) {
+                return res.status(400).json({ error: '端口号必须在1-65535之间' });
+            }
+
+            // 验证自定义IP地址
+            if (customIp && !isValidIpAddress(customIp)) {
+                return res.status(400).json({ error: '自定义IP地址格式不正确' });
+            }
+
+            // 根据节点操作系统生成命令
+            const node = connectedNodes.get(task.nodeId);
+            const gostExecutable = getGostExecutable(node);
+
+            // 更新任务配置
+            const updatedTask = {
+                ...task,
+                name: name || task.name,
+                description: description !== undefined ? description : task.description,
+                port: finalPort,
+                customIp: customIp !== undefined ? customIp : task.customIp,
+                customPort: customPort !== undefined ? customPort : task.customPort,
+                command: `${gostExecutable} -L relay+mws://:${finalPort}`,
+                updatedAt: new Date().toISOString()
+            };
+
+            gostTasks.set(taskId, updatedTask);
+            saveConfig();
+            res.json(updatedTask);
+
+        } else if (task.type === 'entry') {
+            // 编辑入口任务
+            const { name, localPort, targetIp, targetPort, exitNodeId, protocols } = req.body;
+
+            if (!name) {
+                return res.status(400).json({ error: '任务名称不能为空' });
+            }
+
+            const selectedProtocols = protocols || task.protocols || ['tcp', 'udp'];
+
+            // 构建新的GOST命令
+            const commands = [];
+            selectedProtocols.forEach(protocol => {
+                const formattedTargetIp = formatIpForUrl(targetIp || task.targetIp);
+                commands.push(`-L ${protocol}://:${localPort || task.localPort}/${formattedTargetIp}:${targetPort || task.targetPort}`);
+            });
+
+            // 如果指定了出口节点
+            if (exitNodeId || task.exitNodeId) {
+                const currentExitNodeId = exitNodeId !== undefined ? exitNodeId : task.exitNodeId;
+                if (currentExitNodeId) {
+                    const exitTask = Array.from(gostTasks.values()).find(t =>
+                        t.taskId === currentExitNodeId && t.type === 'exit'
+                    );
+                    if (exitTask) {
+                        const exitNode = connectedNodes.get(exitTask.nodeId);
+                        if (exitNode) {
+                            const exitIp = getNodeIp(exitNode, exitTask);
+                            const exitPort = exitTask.customPort || exitTask.port;
+                            commands.push(`-F relay+mws://${exitIp}:${exitPort}`);
+                        }
+                    }
+                }
+            }
+
+            // 根据节点操作系统生成命令
+            const node = connectedNodes.get(task.nodeId);
+            const gostExecutable = getGostExecutable(node);
+            const command = `${gostExecutable} ${commands.join(' ')}`;
+
+            // 更新任务配置
+            const updatedTask = {
+                ...task,
+                name: name || task.name,
+                localPort: localPort !== undefined ? parseInt(localPort) : task.localPort,
+                targetIp: targetIp || task.targetIp,
+                targetPort: targetPort !== undefined ? parseInt(targetPort) : task.targetPort,
+                exitNodeId: exitNodeId !== undefined ? exitNodeId : task.exitNodeId,
+                protocols: selectedProtocols,
+                command,
+                updatedAt: new Date().toISOString()
+            };
+
+            gostTasks.set(taskId, updatedTask);
+            saveConfig();
+            res.json(updatedTask);
+        }
+
+    } catch (error) {
+        console.error('编辑任务失败:', error);
+        res.status(500).json({ error: '编辑任务失败' });
+    }
+});
+
+// 批量操作入口任务
+app.post('/api/tasks/batch', (req, res) => {
+    const { action, taskIds, nodeId, exitNodeId } = req.body;
+
+    if (!action || !taskIds || !Array.isArray(taskIds)) {
+        return res.status(400).json({ error: '参数错误' });
+    }
+
+    const results = [];
+    let successCount = 0;
+    let errorCount = 0;
+
+    try {
+        for (const taskId of taskIds) {
+            const task = gostTasks.get(taskId);
+            if (!task || task.type !== 'entry') {
+                results.push({ taskId, success: false, error: '任务不存在或不是入口任务' });
+                errorCount++;
+                continue;
+            }
+
+            switch (action) {
+                case 'switch_node':
+                    // 批量切换入口节点
+                    if (!nodeId) {
+                        results.push({ taskId, success: false, error: '缺少目标节点ID' });
+                        errorCount++;
+                        continue;
+                    }
+
+                    const targetNode = connectedNodes.get(nodeId);
+                    if (!targetNode) {
+                        results.push({ taskId, success: false, error: '目标节点不在线' });
+                        errorCount++;
+                        continue;
+                    }
+
+                    if (task.status === 'running') {
+                        // 先停止任务
+                        sendCommandToNode(task.nodeId, {
+                            type: 'stop_gost',
+                            data: { processId: taskId }
+                        });
+                    }
+
+                    // 更新节点ID
+                    task.nodeId = nodeId;
+                    task.updatedAt = new Date().toISOString();
+                    gostTasks.set(taskId, task);
+
+                    results.push({ taskId, success: true, message: '节点切换成功' });
+                    successCount++;
+                    break;
+
+                case 'switch_exit':
+                    // 批量切换出口节点
+                    if (task.status === 'running') {
+                        results.push({ taskId, success: false, error: '请先停止任务再切换出口' });
+                        errorCount++;
+                        continue;
+                    }
+
+                    // 重新构建命令
+                    const commands = [];
+                    task.protocols.forEach(protocol => {
+                        const formattedTargetIp = formatIpForUrl(task.targetIp);
+                        commands.push(`-L ${protocol}://:${task.localPort}/${formattedTargetIp}:${task.targetPort}`);
+                    });
+
+                    // 添加新的出口节点
+                    if (exitNodeId) {
+                        const exitTask = Array.from(gostTasks.values()).find(t =>
+                            t.taskId === exitNodeId && t.type === 'exit'
+                        );
+                        if (exitTask) {
+                            const exitNode = connectedNodes.get(exitTask.nodeId);
+                            if (exitNode) {
+                                const exitIp = getNodeIp(exitNode, exitTask);
+                                const exitPort = exitTask.customPort || exitTask.port;
+                                commands.push(`-F relay+mws://${exitIp}:${exitPort}`);
+                            }
+                        }
+                    }
+
+                    // 根据节点操作系统生成命令
+                    const node = connectedNodes.get(task.nodeId);
+                    const gostExecutable = getGostExecutable(node);
+                    const newCommand = `${gostExecutable} ${commands.join(' ')}`;
+
+                    // 更新任务
+                    task.exitNodeId = exitNodeId || null;
+                    task.command = newCommand;
+                    task.updatedAt = new Date().toISOString();
+                    gostTasks.set(taskId, task);
+
+                    results.push({ taskId, success: true, message: '出口切换成功' });
+                    successCount++;
+                    break;
+
+                case 'stop':
+                    // 批量停止任务
+                    if (task.status !== 'running') {
+                        results.push({ taskId, success: false, error: '任务未在运行' });
+                        errorCount++;
+                        continue;
+                    }
+
+                    const stopSuccess = sendCommandToNode(task.nodeId, {
+                        type: 'stop_gost',
+                        data: { processId: taskId }
+                    });
+
+                    if (stopSuccess) {
+                        task.status = 'stopping';
+                        gostTasks.set(taskId, task);
+                        results.push({ taskId, success: true, message: '停止命令已发送' });
+                        successCount++;
+                    } else {
+                        results.push({ taskId, success: false, error: '节点不在线或发送命令失败' });
+                        errorCount++;
+                    }
+                    break;
+
+                case 'delete':
+                    // 批量删除任务
+                    if (task.status === 'running') {
+                        // 先停止任务
+                        sendCommandToNode(task.nodeId, {
+                            type: 'stop_gost',
+                            data: { processId: taskId }
+                        });
+                    }
+
+                    // 删除任务
+                    gostTasks.delete(taskId);
+                    results.push({ taskId, success: true, message: '任务删除成功' });
+                    successCount++;
+                    break;
+
+                default:
+                    results.push({ taskId, success: false, error: '未知操作类型' });
+                    errorCount++;
+            }
+        }
+
+        // 保存配置
+        saveConfig();
+
+        res.json({
+            success: true,
+            message: `批量操作完成：成功 ${successCount} 个，失败 ${errorCount} 个`,
+            results,
+            successCount,
+            errorCount
+        });
+
+    } catch (error) {
+        console.error('批量操作失败:', error);
+        res.status(500).json({ error: '批量操作失败' });
+    }
+});
+
 // 删除GOST任务
 app.delete('/api/tasks/:taskId', (req, res) => {
     const { taskId } = req.params;
     const task = gostTasks.get(taskId);
-    
+
     if (!task) {
         return res.status(404).json({ error: '任务不存在' });
     }
-    
+
     // 先停止任务
     sendCommandToNode(task.nodeId, {
         type: 'stop_gost',
@@ -448,11 +735,11 @@ app.delete('/api/tasks/:taskId', (req, res) => {
             processId: taskId
         }
     });
-    
+
     // 删除任务配置
     gostTasks.delete(taskId);
     saveConfig();
-    
+
     res.json({ message: '任务删除成功' });
 });
 
@@ -482,6 +769,33 @@ function isValidIpAddress(ip) {
     }
 
     return ipv4Regex.test(ip);
+}
+
+// 根据节点操作系统获取GOST可执行文件路径
+function getGostExecutable(node) {
+    if (!node || !node.platform) {
+        // 如果无法获取平台信息，默认使用 ./gost（适用于大多数Linux环境）
+        return './gost';
+    }
+
+    const platform = node.platform.toLowerCase();
+
+    switch (platform) {
+        case 'linux':
+            return './gost';
+        case 'darwin':  // macOS
+            return 'gost';
+        case 'win32':   // Windows
+            return 'gost.exe';
+        case 'freebsd':
+        case 'openbsd':
+        case 'netbsd':
+            return './gost';
+        default:
+            // 未知平台，默认使用 ./gost
+            console.log(`未知平台: ${platform}，使用默认的 ./gost`);
+            return './gost';
+    }
 }
 
 // 格式化IP地址用于URL（IPv6需要方括号）

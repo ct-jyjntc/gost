@@ -11,64 +11,102 @@ body {
     color: #333;
 }
 
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-}
-
-header {
-    text-align: center;
-    margin-bottom: 30px;
-    color: white;
-}
-
-header h1 {
-    font-size: 2.5rem;
-    margin-bottom: 10px;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-}
-
-header p {
-    font-size: 1.1rem;
-    opacity: 0.9;
-}
-
-.tabs {
+/* 应用容器 - 左右布局 */
+.app-container {
     display: flex;
-    background: white;
-    border-radius: 10px 10px 0 0;
-    overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    min-height: 100vh;
 }
 
-.tab-button {
+/* 左侧边栏 */
+.sidebar {
+    width: 250px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-right: 1px solid rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.sidebar-header {
+    padding: 30px 20px 20px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.sidebar-header h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.sidebar-header p {
+    font-size: 0.875rem;
+    color: #666;
+    margin: 0;
+}
+
+/* 侧边栏导航 */
+.sidebar-nav {
+    padding: 20px 0;
     flex: 1;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
     padding: 15px 20px;
     border: none;
-    background: #f8f9fa;
+    background: none;
+    color: #666;
+    font-size: 0.95rem;
     cursor: pointer;
-    font-size: 1rem;
-    font-weight: 500;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
+    text-align: left;
+    border-left: 3px solid transparent;
 }
 
-.tab-button:hover {
-    background: #e9ecef;
-}
-
-.tab-button.active {
-    background: white;
+.nav-item:hover {
+    background: rgba(102, 126, 234, 0.1);
     color: #667eea;
-    border-bottom: 3px solid #667eea;
 }
+
+.nav-item.active {
+    background: rgba(102, 126, 234, 0.15);
+    color: #667eea;
+    border-left-color: #667eea;
+    font-weight: 600;
+}
+
+.nav-icon {
+    font-size: 1.2rem;
+    margin-right: 12px;
+    width: 24px;
+    text-align: center;
+}
+
+.nav-text {
+    flex: 1;
+}
+
+/* 主内容区 */
+.main-content {
+    flex: 1;
+    margin-left: 250px;
+    padding: 30px;
+    background: white;
+    min-height: 100vh;
+    overflow-y: auto;
+}
+
+
 
 .tab-content {
     display: none;
-    background: white;
-    padding: 30px;
-    border-radius: 0 0 10px 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
 .tab-content.active {
@@ -113,12 +151,6 @@ header p {
     border: 1px solid #dee2e6;
     border-radius: 8px;
     padding: 20px;
-    transition: all 0.3s ease;
-}
-
-.node-card:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    transform: translateY(-2px);
 }
 
 .node-header {
@@ -315,6 +347,192 @@ header p {
     font-size: 0.85rem;
     color: #666;
     line-height: 1.4;
+}
+
+/* 批量操作样式 */
+.batch-controls {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.batch-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+    color: #495057;
+}
+
+.batch-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.batch-select {
+    padding: 5px 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    min-width: 120px;
+}
+
+.btn-sm {
+    padding: 5px 12px;
+    font-size: 0.875rem;
+}
+
+.task-checkbox {
+    margin-right: 10px;
+    transform: scale(1.2);
+}
+
+.task-card.selected {
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+@media (max-width: 768px) {
+    .batch-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .batch-actions {
+        justify-content: center;
+    }
+}
+
+/* 系统统计样式 */
+.system-stats {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #e9ecef;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 10px;
+}
+
+.stat-label {
+    min-width: 40px;
+    font-weight: 500;
+    color: #495057;
+    font-size: 0.875rem;
+}
+
+.stat-value {
+    min-width: 120px;
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.stat-bar {
+    flex: 1;
+    height: 6px;
+    background-color: #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+
+.stat-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.cpu-fill {
+    background: linear-gradient(90deg, #28a745 0%, #ffc107 70%, #dc3545 90%);
+}
+
+.memory-fill {
+    background: linear-gradient(90deg, #17a2b8 0%, #ffc107 70%, #dc3545 90%);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .app-container {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+        border-right: none;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .sidebar-nav {
+        display: flex;
+        padding: 10px;
+        overflow-x: auto;
+    }
+
+    .nav-item {
+        flex-shrink: 0;
+        min-width: 120px;
+        padding: 10px 15px;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+        text-align: center;
+    }
+
+    .nav-item.active {
+        border-left: none;
+        border-bottom-color: #667eea;
+    }
+
+    .nav-icon {
+        display: block;
+        margin: 0 auto 5px;
+    }
+
+    .nav-text {
+        font-size: 0.8rem;
+    }
+
+    .main-content {
+        margin-left: 0;
+        padding: 20px;
+    }
+
+    .stat-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 5px;
+    }
+
+    .stat-label {
+        min-width: auto;
+    }
+
+    .stat-value {
+        min-width: auto;
+        text-align: center;
+    }
+
+    .batch-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .batch-actions {
+        justify-content: center;
+    }
 }
 
 .checkbox-group {
