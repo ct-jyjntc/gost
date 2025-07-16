@@ -976,30 +976,71 @@ function clearSelection() {
     document.getElementById('batch-controls').style.display = 'none';
 }
 
+// 缓存上次的选项数据，避免不必要的重新生成
+let lastNodesData = '';
+let lastExitTasksData = '';
+
 // 更新批量操作选项
 function updateBatchOptions() {
-    // 更新目标节点选项
     const nodeSelect = document.getElementById('batch-target-node');
-    nodeSelect.innerHTML = '<option value="">选择目标节点</option>';
-    nodes.forEach(node => {
-        const option = document.createElement('option');
-        option.value = node.nodeId;
-        option.textContent = `${node.nodeName} (${node.hostname})`;
-        nodeSelect.appendChild(option);
-    });
-
-    // 更新出口节点选项
     const exitSelect = document.getElementById('batch-target-exit');
-    exitSelect.innerHTML = '<option value="">直连（不使用出口节点）</option>';
+
+    if (!nodeSelect || !exitSelect) {
+        return; // 如果元素不存在，直接返回
+    }
+
+    // 保存当前选中状态
+    const currentNodeValue = nodeSelect.value;
+    const currentExitValue = exitSelect.value;
+
+    // 检查节点数据是否有变化
+    const currentNodesData = JSON.stringify(nodes.map(n => ({ id: n.nodeId, name: n.nodeName, hostname: n.hostname })));
+    if (currentNodesData !== lastNodesData) {
+        lastNodesData = currentNodesData;
+
+        // 更新目标节点选项
+        nodeSelect.innerHTML = '<option value="">选择目标节点</option>';
+        nodes.forEach(node => {
+            const option = document.createElement('option');
+            option.value = node.nodeId;
+            option.textContent = `${node.nodeName} (${node.hostname})`;
+            nodeSelect.appendChild(option);
+        });
+
+        // 恢复选中状态
+        if (currentNodeValue) {
+            nodeSelect.value = currentNodeValue;
+        }
+    }
+
+    // 检查出口任务数据是否有变化
     const exitTasks = tasks.filter(task => task.type === 'exit');
-    exitTasks.forEach(task => {
-        const node = nodes.find(n => n.nodeId === task.nodeId);
-        const nodeName = node ? node.nodeName : '节点离线';
-        const option = document.createElement('option');
-        option.value = task.taskId;
-        option.textContent = `${task.name} (${nodeName})`;
-        exitSelect.appendChild(option);
-    });
+    const currentExitTasksData = JSON.stringify(exitTasks.map(t => ({
+        id: t.taskId,
+        name: t.name,
+        nodeId: t.nodeId,
+        nodeName: nodes.find(n => n.nodeId === t.nodeId)?.nodeName || '节点离线'
+    })));
+
+    if (currentExitTasksData !== lastExitTasksData) {
+        lastExitTasksData = currentExitTasksData;
+
+        // 更新出口节点选项
+        exitSelect.innerHTML = '<option value="">直连（不使用出口节点）</option>';
+        exitTasks.forEach(task => {
+            const node = nodes.find(n => n.nodeId === task.nodeId);
+            const nodeName = node ? node.nodeName : '节点离线';
+            const option = document.createElement('option');
+            option.value = task.taskId;
+            option.textContent = `${task.name} (${nodeName})`;
+            exitSelect.appendChild(option);
+        });
+
+        // 恢复选中状态
+        if (currentExitValue) {
+            exitSelect.value = currentExitValue;
+        }
+    }
 }
 
 // 批量切换入口节点

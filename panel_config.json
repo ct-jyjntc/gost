@@ -9,10 +9,10 @@
         "platform": "darwin",
         "arch": "arm64",
         "hostname": "Mac-mini.local",
-        "uptime": 482403,
+        "uptime": 483348,
         "memory": {
           "total": 17179869184,
-          "free": 210157568
+          "free": 312229888
         },
         "cpus": 10,
         "networkInterfaces": {
@@ -165,7 +165,7 @@
         },
         "version": "1.0.0",
         "runningProcesses": [],
-        "registeredAt": "2025-07-16T15:12:23.962Z"
+        "registeredAt": "2025-07-16T15:28:08.590Z"
       }
     ]
   ],
@@ -181,7 +181,7 @@
         "localPort": 34344,
         "targetIp": "31.22.111.51",
         "targetPort": 33460,
-        "exitNodeId": "1752678106878",
+        "exitNodeId": "1752678449529",
         "protocols": [
           "tcp",
           "udp"
@@ -189,8 +189,9 @@
         "status": "stopped",
         "createdAt": "2025-07-16T15:02:02.768Z",
         "pid": null,
-        "startedAt": "2025-07-16T15:12:48.517Z",
-        "stoppedAt": "2025-07-16T15:12:49.079Z"
+        "startedAt": "2025-07-16T15:28:29.112Z",
+        "stoppedAt": "2025-07-16T15:28:35.375Z",
+        "updatedAt": "2025-07-16T15:28:45.754Z"
       }
     ],
     [
@@ -208,8 +209,8 @@
         "status": "stopped",
         "createdAt": "2025-07-16T15:07:29.529Z",
         "pid": null,
-        "startedAt": "2025-07-16T15:12:30.146Z",
-        "stoppedAt": "2025-07-16T15:12:50.695Z"
+        "startedAt": "2025-07-16T15:28:55.379Z",
+        "stoppedAt": "2025-07-16T15:29:01.844Z"
       }
     ]
   ]
