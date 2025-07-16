@@ -9,10 +9,10 @@
         "platform": "darwin",
         "arch": "arm64",
         "hostname": "Mac-mini.local",
-        "uptime": 483348,
+        "uptime": 485588,
         "memory": {
           "total": 17179869184,
-          "free": 312229888
+          "free": 167034880
         },
         "cpus": 10,
         "networkInterfaces": {
@@ -165,39 +165,15 @@
         },
         "version": "1.0.0",
         "runningProcesses": [],
-        "registeredAt": "2025-07-16T15:28:08.590Z"
+        "registeredAt": "2025-07-16T16:05:28.942Z"
       }
     ]
   ],
   "gostTasks": [
     [
-      "1752678122767",
+      "1752681936539",
       {
-        "taskId": "1752678122767",
-        "nodeId": "32e4870f7be3",
-        "name": "test-01",
-        "type": "entry",
-        "command": "gost -L tcp://:34344/31.22.111.51:33460 -L udp://:34344/31.22.111.51:33460 -F relay+mws://10.10.10.153:34343",
-        "localPort": 34344,
-        "targetIp": "31.22.111.51",
-        "targetPort": 33460,
-        "exitNodeId": "1752678449529",
-        "protocols": [
-          "tcp",
-          "udp"
-        ],
-        "status": "stopped",
-        "createdAt": "2025-07-16T15:02:02.768Z",
-        "pid": null,
-        "startedAt": "2025-07-16T15:28:29.112Z",
-        "stoppedAt": "2025-07-16T15:28:35.375Z",
-        "updatedAt": "2025-07-16T15:28:45.754Z"
-      }
-    ],
-    [
-      "1752678449529",
-      {
-        "taskId": "1752678449529",
+        "taskId": "1752681936539",
         "nodeId": "32e4870f7be3",
         "name": "test",
         "description": "",
@@ -206,11 +182,32 @@
         "port": 34343,
         "customIp": null,
         "customPort": null,
-        "status": "stopped",
-        "createdAt": "2025-07-16T15:07:29.529Z",
-        "pid": null,
-        "startedAt": "2025-07-16T15:28:55.379Z",
-        "stoppedAt": "2025-07-16T15:29:01.844Z"
+        "status": "running",
+        "createdAt": "2025-07-16T16:05:36.539Z",
+        "pid": 99445,
+        "startedAt": "2025-07-16T16:05:51.029Z"
+      }
+    ],
+    [
+      "1752681947374",
+      {
+        "taskId": "1752681947374",
+        "nodeId": "32e4870f7be3",
+        "name": "test-01",
+        "type": "entry",
+        "command": "gost -L tcp://:34344/31.22.111.51:33460 -L udp://:34344/31.22.111.51:33460 -F relay+mws://10.10.10.153:34343",
+        "localPort": 34344,
+        "targetIp": "31.22.111.51",
+        "targetPort": 33460,
+        "exitNodeId": "1752681936539",
+        "protocols": [
+          "tcp",
+          "udp"
+        ],
+        "status": "running",
+        "createdAt": "2025-07-16T16:05:47.374Z",
+        "pid": 99433,
+        "startedAt": "2025-07-16T16:05:49.244Z"
       }
     ]
   ]

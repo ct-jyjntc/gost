@@ -69,11 +69,12 @@ async function loadData() {
             const data = await response.json();
             nodes = data.nodes || [];
             tasks = data.tasks || [];
-            
+
             renderNodes();
             renderExitTasks();
             renderEntryTasks();
-            updateNodeOptions();
+            // 只在没有打开的模态框时更新节点选项，避免影响用户正在进行的操作
+            updateNodeOptionsIfNeeded();
         } else {
             showError('加载数据失败');
         }
@@ -281,33 +282,52 @@ function renderEntryTasks() {
     updateSelectionAfterRender();
 }
 
+// 检查是否有模态框打开
+function hasOpenModal() {
+    const modals = document.querySelectorAll('.modal');
+    return Array.from(modals).some(modal => modal.style.display === 'block');
+}
+
+// 智能更新节点选项（避免在模态框打开时更新）
+function updateNodeOptionsIfNeeded() {
+    // 如果有模态框打开，不更新选项以避免干扰用户操作
+    if (hasOpenModal()) {
+        return;
+    }
+    updateNodeOptions();
+}
+
 // 更新节点选项
 function updateNodeOptions() {
     const exitTaskNodeSelect = document.getElementById('exit-task-node');
     const entryTaskNodeSelect = document.getElementById('entry-task-node');
     const entryTaskExitSelect = document.getElementById('entry-task-exit');
-    
+
+    if (!exitTaskNodeSelect || !entryTaskNodeSelect || !entryTaskExitSelect) {
+        return; // 如果元素不存在，直接返回
+    }
+
     // 更新节点选项
     [exitTaskNodeSelect, entryTaskNodeSelect].forEach(select => {
         const currentValue = select.value;
         select.innerHTML = '<option value="">请选择节点</option>';
-        
+
         nodes.forEach(node => {
             const option = document.createElement('option');
             option.value = node.nodeId;
             option.textContent = `${node.nodeName} (${node.nodeType})`;
             select.appendChild(option);
         });
-        
+
         if (currentValue) {
             select.value = currentValue;
         }
     });
-    
+
     // 更新出口任务选项
     const currentExitValue = entryTaskExitSelect.value;
     entryTaskExitSelect.innerHTML = '<option value="">直连（不使用出口）</option>';
-    
+
     const exitTasks = tasks.filter(task => task.type === 'exit');
     exitTasks.forEach(task => {
         const node = nodes.find(n => n.nodeId === task.nodeId);
@@ -316,7 +336,7 @@ function updateNodeOptions() {
         option.textContent = `${task.name} (${node ? node.nodeName : '离线'})`;
         entryTaskExitSelect.appendChild(option);
     });
-    
+
     if (currentExitValue) {
         entryTaskExitSelect.value = currentExitValue;
     }
